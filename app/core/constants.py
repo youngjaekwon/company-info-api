@@ -15,6 +15,4 @@ def get_env_file(env: EnvConstants | None = None) -> str:
     if env is None:
         env = os.getenv("APP_ENV", EnvConstants.DEV)
 
-    print(os.path.join(ENV_DIR, f".env.{env}"))
-
     return os.path.join(ENV_DIR, f".env.{env}")
