@@ -1,0 +1,86 @@
+from __future__ import annotations
+
+import uuid
+
+from sqlalchemy import (
+    Integer,
+    ForeignKey,
+    String,
+    UUID,
+    Table,
+    Column,
+    UniqueConstraint,
+)
+from sqlalchemy.orm import mapped_column, Mapped, relationship
+
+from app.db.base import Base
+
+
+company_tag = Table(
+    "company_tag",
+    Base.metadata,
+    Column("company_id", ForeignKey("companies.id"), primary_key=True),
+    Column("company_tag_id", ForeignKey("company_tags.id"), primary_key=True),
+)
+
+
+class Company(Base):
+    __tablename__ = "companies"
+
+    id: Mapped[str] = mapped_column(
+        UUID(as_uuid=True), default=uuid.uuid4, primary_key=True
+    )
+
+    names: Mapped[list[CompanyName]] = relationship(
+        "CompanyName",
+        back_populates="company",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    tags: Mapped[list[CompanyTag]] = relationship(
+        "CompanyTag",
+        secondary=company_tag,
+        back_populates="companies",
+    )
+
+
+class CompanyName(Base):
+    __tablename__ = "company_names"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_id: Mapped[int] = mapped_column(ForeignKey("companies.id"), nullable=False)
+    language_code: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+
+    __table_args__ = (UniqueConstraint("company_id", "language_code"),)
+
+
+class CompanyTag(Base):
+    __tablename__ = "company_tags"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+
+    names: Mapped[list[CompanyTagName]] = relationship(
+        "CompanyTagName",
+        back_populates="company_tag",
+        cascade="all, delete-orphan",
+        lazy="selectin",
+    )
+    companies: Mapped[list[Company]] = relationship(
+        "Company",
+        secondary=company_tag,
+        back_populates="tags",
+    )
+
+
+class CompanyTagName(Base):
+    __tablename__ = "company_tag_names"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    company_tag_id: Mapped[int] = mapped_column(
+        ForeignKey("company_tags.id"), nullable=False
+    )
+    language_code: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
+    name: Mapped[str] = mapped_column(nullable=False)
+
+    __table_args__ = (UniqueConstraint("company_tag_id", "language_code"),)
