@@ -23,6 +23,9 @@ class AppContainer(containers.DeclarativeContainer):
 
     services = providers.Container(
         ServiceContainer,
+        db=db.provided.session,
         company_repo=repositories.provided.company_repository,
+        company_tag_repo=repositories.provided.company_tag_repository,
         company_mapper=repositories.provided.company_mapper,
+        company_tag_mapper=repositories.provided.company_tag_mapper,
     )
