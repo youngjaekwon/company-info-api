@@ -33,7 +33,6 @@ class Company(Base):
 
     names: Mapped[list[CompanyName]] = relationship(
         "CompanyName",
-        back_populates="company",
         cascade="all, delete-orphan",
         lazy="selectin",
     )
@@ -62,7 +61,6 @@ class CompanyTag(Base):
 
     names: Mapped[list[CompanyTagName]] = relationship(
         "CompanyTagName",
-        back_populates="company_tag",
         cascade="all, delete-orphan",
         lazy="selectin",
     )

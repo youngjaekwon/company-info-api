@@ -45,7 +45,7 @@ class CompanyRepository:
             select(Company)
             .join(Company.tags)
             .join(CompanyTag.names)
-            .where(CompanyTagName.name.ilike(f"%{tag}%"))
+            .where(CompanyTagName.name == tag)
             .options(selectinload(Company.names))
         )
         result = await self._db.execute(stmt)
