@@ -131,6 +131,10 @@ class CompanyRepository:
         existing_tag_ids = {tag.id for tag in company.tags}
 
         for tag in tags:
+            if tag.id is None:
+                tag_new_row = self._company_tag_mapper.entity_to_row(tag)
+                company.tags.append(tag_new_row)
+                continue
             if tag.id in existing_tag_ids:
                 continue
 
@@ -145,7 +149,7 @@ class CompanyRepository:
                 company.tags.append(tag_row)
 
         await self._db.flush()
-        await self._db.refresh(company)
+        company = await self._get_by_name(name=name)
 
         # Cache 무효화
         await self._redis.delete(f"{self._cache_namespace}:name:{name}")
