@@ -155,9 +155,6 @@ class CompanyRepository:
         for tag in tags:
             if tag.id is None:
                 tag_new_row = self._company_tag_mapper.entity_to_row(tag)
-                self._db.add(tag_new_row)
-                await self._db.flush()
-                await self._db.refresh(tag_new_row)
                 company.tags.append(tag_new_row)
                 continue
             if tag.id in existing_tag_ids:
