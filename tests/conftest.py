@@ -59,29 +59,30 @@ async def redis_client():
 
 
 @pytest.fixture()
-def fastapi_client(_test_engine, redis_client, settings):
-    from dependency_injector import providers
+def fastapi_client(async_session, redis_client, settings):
     from fastapi.testclient import TestClient
-    from sqlalchemy.ext.asyncio import async_sessionmaker
 
-    from app.containers.main_container import AppContainer
+    from app.core.config import get_settings
+    from app.db.redis import get_redis_client
+    from app.db.session import get_db
     from app.main import create_app
 
     # 테스트용 앱 생성
     app = create_app()
 
-    # 테스트용 컨테이너 설정
-    container = AppContainer()
+    # 의존성 오버라이드
+    async def override_get_db():
+        yield async_session
 
-    # 테스트 데이터베이스와 Redis 설정
-    async_session_maker = async_sessionmaker(bind=_test_engine, expire_on_commit=False)
+    def override_get_redis_client():
+        return redis_client
 
-    container.settings.override(providers.Object(settings))
-    container.db.session.override(providers.Factory(async_session_maker))
-    container.db.redis_client.override(providers.Object(redis_client))
+    def override_get_settings():
+        return settings
 
-    app.container = container
-    container.wire(modules=["app.api.v1.company"])
+    app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_redis_client] = override_get_redis_client
+    app.dependency_overrides[get_settings] = override_get_settings
 
     with TestClient(app) as client:
         yield client

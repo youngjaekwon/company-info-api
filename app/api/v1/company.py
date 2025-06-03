@@ -1,10 +1,8 @@
 from typing import Annotated
 
-from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, Query, status
 
-from app.api.deps import WantedLanguage
-from app.containers import AppContainer
+from app.api.deps import WantedLanguage, get_company_service
 from app.dto.company_dto import (
     CompanyDto,
     CompanyNameDto,
@@ -23,13 +21,10 @@ router = APIRouter(tags=["Company"])
 
 
 @router.get("/search", response_model=list[SearchedCompanyResponse])
-@inject
 async def search_companies(
     query: Annotated[str, Query()],
     language_code: WantedLanguage,
-    company_service: Annotated[
-        ICompanyService, Depends(Provide[AppContainer.services.company_service])
-    ],
+    company_service: Annotated[ICompanyService, Depends(get_company_service)],
 ):
     return await company_service.get_by_partial_name(
         partial_name=query, language_code=language_code
@@ -37,13 +32,10 @@ async def search_companies(
 
 
 @router.post("/companies", response_model=CompanyResponse)
-@inject
 async def create_company(
     body: CreateCompanyRequest,
     language_code: WantedLanguage,
-    company_service: Annotated[
-        ICompanyService, Depends(Provide[AppContainer.services.company_service])
-    ],
+    company_service: Annotated[ICompanyService, Depends(get_company_service)],
 ):
     names = tuple(
         CompanyNameDto(language_code=language_code, name=name)
@@ -66,13 +58,10 @@ async def create_company(
 
 
 @router.get("/companies/{company_name}", response_model=CompanyResponse)
-@inject
 async def get_company(
     company_name: str,
     language_code: WantedLanguage,
-    company_service: Annotated[
-        ICompanyService, Depends(Provide[AppContainer.services.company_service])
-    ],
+    company_service: Annotated[ICompanyService, Depends(get_company_service)],
 ):
     company = await company_service.get_by_name(
         name=company_name, language_code=language_code
@@ -85,14 +74,11 @@ async def get_company(
 
 
 @router.put("/companies/{company_name}/tags", response_model=CompanyResponse)
-@inject
 async def add_tags_to_company(
     company_name: str,
     body: list[CompanyTagRequest],
     language_code: WantedLanguage,
-    company_service: Annotated[
-        ICompanyService, Depends(Provide[AppContainer.services.company_service])
-    ],
+    company_service: Annotated[ICompanyService, Depends(get_company_service)],
 ):
     tags = [
         CompanyTagDto(
@@ -116,14 +102,11 @@ async def add_tags_to_company(
 @router.delete(
     "/companies/{company_name}/tags/{tag_name}", response_model=CompanyResponse
 )
-@inject
 async def remove_tag_from_company(
     company_name: str,
     tag_name: str,
     language_code: WantedLanguage,
-    company_service: Annotated[
-        ICompanyService, Depends(Provide[AppContainer.services.company_service])
-    ],
+    company_service: Annotated[ICompanyService, Depends(get_company_service)],
 ):
     updated_company = await company_service.remove_tag(
         name=company_name, tag=tag_name, language_code=language_code
@@ -136,12 +119,9 @@ async def remove_tag_from_company(
 
 
 @router.get("/tags", response_model=list[SearchedCompanyResponse])
-@inject
 async def get_companies_by_tag(
     query: Annotated[str, Query()],
     language_code: WantedLanguage,
-    company_service: Annotated[
-        ICompanyService, Depends(Provide[AppContainer.services.company_service])
-    ],
+    company_service: Annotated[ICompanyService, Depends(get_company_service)],
 ):
     return await company_service.get_by_tag(tag=query, language_code=language_code)

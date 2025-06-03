@@ -1,9 +1,19 @@
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+from typing import AsyncGenerator, Annotated
 
-from app.core.config import Settings
+from fastapi import Depends
+from sqlalchemy.ext.asyncio import (
+    AsyncSession,
+    async_sessionmaker,
+    create_async_engine,
+    AsyncEngine,
+)
+
+from app.core.config import Settings, get_settings
 
 
-def create_database_engine(settings: Settings):
+def create_database_engine(
+    settings: Annotated[Settings, Depends(get_settings)],
+):
     return create_async_engine(
         url=settings.DATABASE_URL,
         pool_size=settings.DATABASE_POOL_SIZE,
@@ -15,11 +25,25 @@ def create_database_engine(settings: Settings):
     )
 
 
-def create_session_factory(engine):
+def create_session_factory(
+    engine: Annotated[AsyncEngine, Depends(create_database_engine)],
+):
     return async_sessionmaker(
         bind=engine,
         class_=AsyncSession,
         expire_on_commit=False,
-        autoflush=False,
-        autocommit=False,
     )
+
+
+async def get_db(
+    session_factory: Annotated[async_sessionmaker, Depends(create_session_factory)],
+) -> AsyncGenerator[AsyncSession, None]:
+    async with session_factory() as session:
+        try:
+            yield session
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            raise e
+        finally:
+            await session.close()

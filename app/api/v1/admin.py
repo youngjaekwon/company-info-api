@@ -1,11 +1,10 @@
 from pathlib import Path
 from typing import Annotated
 
-from dependency_injector.wiring import Provide, inject
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.containers import AppContainer
+from app.db.session import get_db
 from app.services.data_initializer import (
     DataInitializationError,
     DataInitializerService,
@@ -15,9 +14,8 @@ router = APIRouter(prefix="/admin", tags=["admin"])
 
 
 @router.post("/initialize-data", status_code=status.HTTP_201_CREATED)
-@inject
 async def initialize_data(
-    session: Annotated[AsyncSession, Depends(Provide[AppContainer.db.session])],
+    session: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         # CSV 파일 경로 설정 (프로젝트 루트에 있는 파일)
@@ -45,9 +43,8 @@ async def initialize_data(
 
 
 @router.get("/data-status")
-@inject
 async def check_data_status(
-    session: Annotated[AsyncSession, Depends(Provide[AppContainer.db.session])],
+    session: Annotated[AsyncSession, Depends(get_db)],
 ):
     try:
         initializer = DataInitializerService(session)

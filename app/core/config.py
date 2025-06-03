@@ -1,3 +1,5 @@
+from functools import lru_cache
+
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 from app.core.constants import EnvConstants, get_env_file
@@ -33,4 +35,9 @@ class Settings(BaseSettings):
     REPOSITORY_CACHE_PARTIAL_TTL: int = 60  # 1 minute, 부분 검색용 캐시 TTL
 
 
-settings = Settings()
+@lru_cache
+def get_settings() -> Settings:
+    return Settings()
+
+
+settings = get_settings()

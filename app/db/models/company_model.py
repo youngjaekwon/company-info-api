@@ -6,11 +6,11 @@ from sqlalchemy import (
     UUID,
     Column,
     ForeignKey,
+    Index,
     Integer,
     String,
     Table,
     UniqueConstraint,
-    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
