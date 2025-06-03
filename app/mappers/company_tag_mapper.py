@@ -17,13 +17,17 @@ class CompanyTagMapper:
         return CompanyTagEntity(names=names, id=row.id)
 
     def entity_to_row(self, entity: CompanyTagEntity) -> CompanyTag:
-        tag = CompanyTag(id=entity.id)
+        if entity.id is not None:
+            tag = CompanyTag(id=entity.id)
+        else:
+            tag = CompanyTag()
+
         tag.names = [
             CompanyTagName(
                 language_code=name.language_code,
                 name=name.name,
-                id=name.id,
                 company_tag_id=name.company_tag_id,
+                **({"id": name.id} if name.id is not None else {}),
             )
             for name in entity.names
         ]

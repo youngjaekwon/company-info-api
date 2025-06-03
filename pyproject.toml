@@ -21,4 +21,5 @@ dependencies = [
 dev = [
     "aiosqlite>=0.21.0",
     "fakeredis>=2.29.0",
+    "httpx>=0.28.1",
 ]

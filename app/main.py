@@ -5,15 +5,15 @@ from app.api.v1.route import router as v1_router
 
 
 def create_app() -> FastAPI:
-    container = AppContainer()
-
     app = FastAPI(
         title="Company Info API",
         version="1.0.0",
     )
 
-    app.container = container
+    container = AppContainer()
     container.wire(modules=["app.api.v1.company"])
+
+    app.container = container
 
     app.include_router(v1_router)
 

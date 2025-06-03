@@ -19,46 +19,70 @@ class CompanyTagRepository:
         if not names:
             return None
 
-        expected_match_count = len(names)
-
-        # 1단계: 제공된 이름들과 일치하는 company_tag_id들을 찾기
-        # (제공된 이름 개수만큼 매치되는 태그들)
-        matching_tags_subquery = (
-            select(CompanyTagName.company_tag_id)
+        stmt = (
+            select(CompanyTag, func.count(CompanyTagName.id).label("match_count"))
+            .join(CompanyTag.names)
             .where(
-                tuple_(CompanyTagName.language_code, CompanyTagName.name).in_(
-                    [(name.language_code, name.name) for name in names]
+                tuple_(CompanyTagName.name, CompanyTagName.language_code).in_(
+                    [(name.name, name.language_code) for name in names]
                 )
             )
-            .group_by(CompanyTagName.company_tag_id)
-            .having(func.count() == expected_match_count)
-            .subquery()
-        )
-
-        # 2단계: 해당 태그들이 정확히 제공된 이름 개수만큼만 가지고 있는지 확인
-        # (추가 이름이 없는지 확인)
-        exact_match_subquery = (
-            select(CompanyTagName.company_tag_id)
-            .where(CompanyTagName.company_tag_id.in_(select(matching_tags_subquery)))
-            .group_by(CompanyTagName.company_tag_id)
-            .having(func.count() == expected_match_count)
-            .subquery()
-        )
-
-        stmt = (
-            select(CompanyTag)
-            .where(CompanyTag.id.in_(select(exact_match_subquery)))
+            .group_by(CompanyTag.id)
+            .order_by(func.count(CompanyTagName.id).desc())
             .options(selectinload(CompanyTag.names))
+            .limit(1)
         )
 
         result = await self._db.execute(stmt)
-        company_tag_row = result.scalars().first()
+        company_tag_row = result.first()
         return (
-            self._company_tag_mapper.row_to_entity(company_tag_row)
+            self._company_tag_mapper.row_to_entity(company_tag_row[0])
             if company_tag_row
             else None
         )
 
+    async def save(self, tag: CompanyTagEntity) -> CompanyTagEntity:
+        tag_row = self._company_tag_mapper.entity_to_row(tag)
+        self._db.add(tag_row)
+        await self._db.flush()
+        await self._db.refresh(tag_row)
+        return self._company_tag_mapper.row_to_entity(tag_row)
+
     async def save_all(self, tags: list[CompanyTagEntity]) -> None:
         tag_rows = [self._company_tag_mapper.entity_to_row(tag) for tag in tags]
         self._db.add_all(tag_rows)
+
+    async def add_missing_names(
+        self, tag: CompanyTagEntity, names: list[CompanyTagNameDto]
+    ) -> CompanyTagEntity:
+        stmt = (
+            select(CompanyTag)
+            .where(CompanyTag.id == tag.id)
+            .options(selectinload(CompanyTag.names))
+        )
+        result = await self._db.execute(stmt)
+        tag_row = result.scalar_one_or_none()
+        if not tag_row:
+            return tag
+
+        existing_language_codes = {name.language_code for name in tag_row.names}
+        created_tag_names = []
+
+        for name in names:
+            if not name.language_code or not name.name:
+                continue
+            if name.language_code in existing_language_codes:
+                continue
+            created_tag_names.append(
+                CompanyTagName(
+                    language_code=name.language_code,
+                    name=name.name,
+                    company_tag_id=tag_row.id,
+                )
+            )
+
+        self._db.add_all(created_tag_names)
+        await self._db.flush()
+        await self._db.refresh(tag_row)
+
+        return self._company_tag_mapper.row_to_entity(tag_row)

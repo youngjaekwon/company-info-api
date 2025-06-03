@@ -16,16 +16,13 @@ class AppContainer(containers.DeclarativeContainer):
 
     repositories = providers.Container(
         RepositoryContainer,
-        db=db.provided.session,
-        redis_client=db.provided.redis_client,
+        db=db.session,
+        redis_client=db.redis_client,
         settings=settings,
     )
 
     services = providers.Container(
         ServiceContainer,
-        db=db.provided.session,
-        company_repo=repositories.provided.company_repository,
-        company_tag_repo=repositories.provided.company_tag_repository,
-        company_mapper=repositories.provided.company_mapper,
-        company_tag_mapper=repositories.provided.company_tag_mapper,
+        db=db.session,
+        repos=repositories,
     )

@@ -122,3 +122,5 @@ venv.bak/
 !.vscode/launch.json
 !.vscode/extensions.json
 .history
+
+company_tag_sample.csv

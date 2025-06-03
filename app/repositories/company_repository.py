@@ -128,9 +128,24 @@ class CompanyRepository:
         if not company:
             return None
 
-        company.tags.extend(
-            [self._company_tag_mapper.entity_to_row(tag) for tag in tags]
-        )
+        existing_tag_ids = {tag.id for tag in company.tags}
+
+        for tag in tags:
+            if tag.id in existing_tag_ids:
+                continue
+
+            stmt = (
+                select(CompanyTag)
+                .where(CompanyTag.id == tag.id)
+                .options(selectinload(CompanyTag.names))
+            )
+            result = await self._db.execute(stmt)
+            tag_row = result.scalar_one_or_none()
+            if tag_row:
+                company.tags.append(tag_row)
+
+        await self._db.flush()
+        await self._db.refresh(company)
 
         # Cache 무효화
         await self._redis.delete(f"{self._cache_namespace}:name:{name}")
@@ -145,7 +160,14 @@ class CompanyRepository:
         if not company:
             return None
 
-        tag_row = next((t for t in company.tags if t.names[0].name == tag), None)
+        tag_row = next(
+            (
+                t
+                for t in company.tags
+                if any(tag_name.name == tag for tag_name in t.names)
+            ),
+            None,
+        )
         if tag_row:
             company.tags.remove(tag_row)
 

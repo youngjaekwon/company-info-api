@@ -53,6 +53,7 @@ class CompanyName(Base):
 
     __table_args__ = (
         UniqueConstraint("company_id", "language_code"),
+        UniqueConstraint("name", "language_code"),
         Index("ix_company_names_name_exact", "name"),  # btree (정확 일치)
         Index(
             "ix_company_names_name_trgm",
@@ -92,5 +93,6 @@ class CompanyTagName(Base):
 
     __table_args__ = (
         UniqueConstraint("company_tag_id", "language_code"),
+        UniqueConstraint("name", "language_code"),
         Index("ix_company_tag_names_name_exact", "name"),
     )

@@ -82,19 +82,26 @@ class CompanyService:
     async def create(
         self, company: CompanyDto, language_code: str
     ) -> CompanySearchResultDto:
-        tag_entities = []
-        for tag in company.tags:
-            tag_entity = await self._company_tag_repo.get_by_names(
-                names=list(tag.names)
-            )
-            if tag_entity is None:
-                tag_entity = self._company_tag_mapper.dto_to_entity(tag)
-
-            tag_entities.append(tag_entity)
-
-        company_entity = self._company_mapper.dto_to_entity(company, tags=tag_entities)
-
         async with self._db.begin():
+            tag_entities = []
+            for tag in company.tags:
+                tag_entity = await self._company_tag_repo.get_by_names(
+                    names=list(tag.names)
+                )
+                if tag_entity is None:
+                    new_tag_entity = self._company_tag_mapper.dto_to_entity(tag)
+                    tag_entity = await self._company_tag_repo.save(new_tag_entity)
+                else:
+                    tag_entity = await self._company_tag_repo.add_missing_names(
+                        tag=tag_entity, names=list(tag.names)
+                    )
+
+                tag_entities.append(tag_entity)
+
+            company_entity = self._company_mapper.dto_to_entity(
+                company, tags=tag_entities
+            )
+
             await self._company_repo.save(company=company_entity)
 
         return self._company_mapper.entity_to_search_result(
@@ -104,17 +111,22 @@ class CompanyService:
     async def add_tags(
         self, name: str, tags: list[CompanyTagDto], language_code: str
     ) -> CompanySearchResultDto | None:
-        tag_entities = []
-        for tag in tags:
-            tag_entity = await self._company_tag_repo.get_by_names(
-                names=list(tag.names)
-            )
-            if tag_entity is None:
-                tag_entity = self._company_tag_mapper.dto_to_entity(tag)
-
-            tag_entities.append(tag_entity)
-
         async with self._db.begin():
+            tag_entities = []
+            for tag in tags:
+                tag_entity = await self._company_tag_repo.get_by_names(
+                    names=list(tag.names)
+                )
+                if tag_entity is None:
+                    new_tag_entity = self._company_tag_mapper.dto_to_entity(tag)
+                    tag_entity = await self._company_tag_repo.save(new_tag_entity)
+                else:
+                    tag_entity = await self._company_tag_repo.add_missing_names(
+                        tag=tag_entity, names=list(tag.names)
+                    )
+
+                tag_entities.append(tag_entity)
+
             company_entity = await self._company_repo.add_tag(
                 name=name, tags=tag_entities
             )

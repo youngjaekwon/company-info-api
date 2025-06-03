@@ -27,7 +27,7 @@ class DBContainer(containers.DeclarativeContainer):
         settings=settings,
     )
 
-    redis = providers.Singleton(
+    redis_client = providers.Singleton(
         create_redis_client,
         redis_pool=redis_pool,
     )

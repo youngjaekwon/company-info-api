@@ -238,3 +238,177 @@ class TestCompanyService:
         assert len(result) == 1
         assert result[0].company_name == "테스트회사1"
         mock_company_repository.get_by_tag.assert_called_once_with(tag="태그1")
+
+    async def test_create_with_existing_tag_adds_missing_language_codes(
+        self, company_service, mock_company_repository, mock_company_tag_repository
+    ):
+        # Given
+        from app.domain.company_entity import CompanyTagEntity, CompanyTagNameEntity
+        from app.dto.company_dto import (
+            CompanyDto,
+            CompanyNameDto,
+            CompanyTagDto,
+            CompanyTagNameDto,
+        )
+
+        # 기존 태그 (ko만 있음)
+        existing_tag = CompanyTagEntity(
+            id=1, names=(CompanyTagNameEntity(language_code="ko", name="개발"),)
+        )
+
+        # 업데이트된 태그 (ko, en, ja 모두 있음)
+        updated_tag = CompanyTagEntity(
+            id=1,
+            names=(
+                CompanyTagNameEntity(language_code="ko", name="개발"),
+                CompanyTagNameEntity(language_code="en", name="development"),
+                CompanyTagNameEntity(language_code="ja", name="開発"),
+            ),
+        )
+
+        mock_company_tag_repository.get_by_names.return_value = existing_tag
+        mock_company_tag_repository.add_missing_names.return_value = updated_tag
+
+        company_dto = CompanyDto(
+            names=(CompanyNameDto(language_code="ko", name="테스트회사"),),
+            tags=(
+                CompanyTagDto(
+                    names=(
+                        CompanyTagNameDto(language_code="ko", name="개발"),
+                        CompanyTagNameDto(language_code="en", name="development"),
+                        CompanyTagNameDto(language_code="ja", name="開発"),
+                    )
+                ),
+            ),
+        )
+
+        # When
+        result = await company_service.create(company_dto, "ko")
+
+        # Then
+        assert result is not None
+        mock_company_tag_repository.get_by_names.assert_called_once()
+        mock_company_tag_repository.add_missing_names.assert_called_once()
+
+        # add_missing_names 호출 인자 확인
+        call_args = mock_company_tag_repository.add_missing_names.call_args
+        assert call_args.kwargs["tag"] == existing_tag
+        expected_names = [
+            CompanyTagNameDto(language_code="ko", name="개발"),
+            CompanyTagNameDto(language_code="en", name="development"),
+            CompanyTagNameDto(language_code="ja", name="開発"),
+        ]
+        assert call_args.kwargs["names"] == expected_names
+
+        mock_company_repository.save.assert_called_once()
+
+    async def test_add_tags_with_existing_tag_adds_missing_language_codes(
+        self, company_service, mock_company_repository, mock_company_tag_repository
+    ):
+        # Given
+        from app.domain.company_entity import (
+            CompanyEntity,
+            CompanyNameEntity,
+            CompanyTagEntity,
+            CompanyTagNameEntity,
+        )
+        from app.dto.company_dto import CompanyTagDto, CompanyTagNameDto
+
+        # 기존 태그 (ko, en만 있음)
+        existing_tag = CompanyTagEntity(
+            id=1,
+            names=(
+                CompanyTagNameEntity(language_code="ko", name="스타트업"),
+                CompanyTagNameEntity(language_code="en", name="startup"),
+            ),
+        )
+
+        # 업데이트된 태그 (ko, en, fr, de 모두 있음)
+        updated_tag = CompanyTagEntity(
+            id=1,
+            names=(
+                CompanyTagNameEntity(language_code="ko", name="스타트업"),
+                CompanyTagNameEntity(language_code="en", name="startup"),
+                CompanyTagNameEntity(language_code="fr", name="startup"),
+                CompanyTagNameEntity(language_code="de", name="startup"),
+            ),
+        )
+
+        # 업데이트된 회사 엔티티
+        updated_company = CompanyEntity(
+            id="test-id",
+            names=(CompanyNameEntity(language_code="ko", name="테스트회사"),),
+            tags=(updated_tag,),
+        )
+
+        mock_company_tag_repository.get_by_names.return_value = existing_tag
+        mock_company_tag_repository.add_missing_names.return_value = updated_tag
+        mock_company_repository.add_tag.return_value = updated_company
+
+        tags = [
+            CompanyTagDto(
+                names=(
+                    CompanyTagNameDto(language_code="ko", name="스타트업"),
+                    CompanyTagNameDto(language_code="en", name="startup"),
+                    CompanyTagNameDto(language_code="fr", name="startup"),
+                    CompanyTagNameDto(language_code="de", name="startup"),
+                )
+            )
+        ]
+
+        # When
+        result = await company_service.add_tags("테스트회사", tags, "ko")
+
+        # Then
+        assert result is not None
+        mock_company_tag_repository.get_by_names.assert_called_once()
+        mock_company_tag_repository.add_missing_names.assert_called_once()
+
+        # add_missing_names 호출 인자 확인
+        call_args = mock_company_tag_repository.add_missing_names.call_args
+        assert call_args.kwargs["tag"] == existing_tag
+        expected_names = [
+            CompanyTagNameDto(language_code="ko", name="스타트업"),
+            CompanyTagNameDto(language_code="en", name="startup"),
+            CompanyTagNameDto(language_code="fr", name="startup"),
+            CompanyTagNameDto(language_code="de", name="startup"),
+        ]
+        assert call_args.kwargs["names"] == expected_names
+
+        mock_company_repository.add_tag.assert_called_once_with(
+            name="테스트회사", tags=[updated_tag]
+        )
+
+    async def test_create_with_new_tag_does_not_call_add_missing_names(
+        self, company_service, mock_company_repository, mock_company_tag_repository
+    ):
+        # Given
+        from app.dto.company_dto import (
+            CompanyDto,
+            CompanyNameDto,
+            CompanyTagDto,
+            CompanyTagNameDto,
+        )
+
+        mock_company_tag_repository.get_by_names.return_value = None
+
+        company_dto = CompanyDto(
+            names=(CompanyNameDto(language_code="ko", name="테스트회사"),),
+            tags=(
+                CompanyTagDto(
+                    names=(
+                        CompanyTagNameDto(language_code="ko", name="새태그"),
+                        CompanyTagNameDto(language_code="en", name="new tag"),
+                    )
+                ),
+            ),
+        )
+
+        # When
+        result = await company_service.create(company_dto, "ko")
+
+        # Then
+        assert result is not None
+        mock_company_tag_repository.get_by_names.assert_called_once()
+        mock_company_tag_repository.add_missing_names.assert_not_called()
+        mock_company_repository.save.assert_called_once()
