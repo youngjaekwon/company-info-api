@@ -21,6 +21,7 @@ class RepositoryContainer(containers.DeclarativeContainer):
         db=db,
         redis_client=redis_client,
         company_mapper=company_mapper,
+        company_tag_mapper=company_tag_mapper,
         settings=settings,
     )
     company_tag_repository = providers.Factory(

@@ -1,13 +1,14 @@
+from redis.asyncio import Redis
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from redis.asyncio import Redis
 
 from app.core.config import Settings
 from app.db.models import Company, CompanyName, CompanyTag, CompanyTagName
-from app.domain.company_entity import CompanyEntity
+from app.domain.company_entity import CompanyEntity, CompanyTagEntity
 from app.dto.company_dto import CompanyDto
 from app.mappers.company_mapper import CompanyMapper
+from app.mappers.company_tag_mapper import CompanyTagMapper
 
 
 class CompanyRepository:
@@ -18,18 +19,16 @@ class CompanyRepository:
         db: AsyncSession,
         redis_client: Redis,
         company_mapper: CompanyMapper,
+        company_tag_mapper: CompanyTagMapper,
         settings: Settings,
     ):
         self._db = db
         self._redis = redis_client
         self._company_mapper = company_mapper
+        self._company_tag_mapper = company_tag_mapper
         self._settings = settings
 
-    async def get_by_name(self, name: str) -> CompanyEntity | None:
-        cache_key = f"{self._cache_namespace}:name:{name}"
-        if cached := await self._redis.get(cache_key):
-            return self._company_mapper.json_to_entity(cached)
-
+    async def _get_by_name(self, name: str) -> Company | None:
         stmt = (
             select(Company)
             .join(Company.names)
@@ -40,7 +39,14 @@ class CompanyRepository:
             )
         )
         result = await self._db.execute(stmt)
-        company = result.scalars().first()
+        return result.scalars().first()
+
+    async def get_by_name(self, name: str) -> CompanyEntity | None:
+        cache_key = f"{self._cache_namespace}:name:{name}"
+        if cached := await self._redis.get(cache_key):
+            return self._company_mapper.json_to_entity(cached)
+
+        company = await self._get_by_name(name)
         if company is None:
             return None
 
@@ -109,3 +115,44 @@ class CompanyRepository:
     async def save(self, company: CompanyEntity) -> None:
         company_row = self._company_mapper.entity_to_row(company)
         self._db.add(company_row)
+
+        # Cache 무효화
+        for tag in company.tags:
+            for tag_name in tag.names:
+                await self._redis.delete(f"{self._cache_namespace}:tag:{tag_name.name}")
+
+    async def add_tag(
+        self, name: str, tags: list[CompanyTagEntity]
+    ) -> CompanyEntity | None:
+        company = await self._get_by_name(name=name)
+        if not company:
+            return None
+
+        company.tags.extend(
+            [self._company_tag_mapper.entity_to_row(tag) for tag in tags]
+        )
+
+        # Cache 무효화
+        await self._redis.delete(f"{self._cache_namespace}:name:{name}")
+        for tag in company.tags:
+            for tag_name in tag.names:
+                await self._redis.delete(f"{self._cache_namespace}:tag:{tag_name.name}")
+
+        return self._company_mapper.row_to_entity(company)
+
+    async def remove_tag(self, name: str, tag: str) -> CompanyEntity | None:
+        company = await self._get_by_name(name=name)
+        if not company:
+            return None
+
+        tag_row = next((t for t in company.tags if t.names[0].name == tag), None)
+        if tag_row:
+            company.tags.remove(tag_row)
+
+        # Cache 무효화
+        await self._redis.delete(f"{self._cache_namespace}:name:{name}")
+        if tag_row:
+            for tag_name in tag_row.names:
+                await self._redis.delete(f"{self._cache_namespace}:tag:{tag_name.name}")
+
+        return self._company_mapper.row_to_entity(company)
