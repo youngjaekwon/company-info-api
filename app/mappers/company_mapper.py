@@ -1,4 +1,5 @@
 import json
+import uuid
 
 from app.db.models import Company, CompanyName, CompanyTag, CompanyTagName
 from app.domain.company_entity import (
@@ -73,7 +74,15 @@ class CompanyMapper:
         return CompanyEntity(names=names, tags=tags, id=str(row.id))
 
     def entity_to_row(self, entity: CompanyEntity) -> Company:
-        company = Company(id=entity.id)
+        # 문자열 ID를 UUID 객체로 변환
+        company_id = None
+        if entity.id:
+            if isinstance(entity.id, str):
+                company_id = uuid.UUID(entity.id)
+            else:
+                company_id = entity.id
+
+        company = Company(id=company_id)
         company.names = [
             CompanyName(language_code=name.language_code, name=name.name, id=name.id)
             for name in entity.names

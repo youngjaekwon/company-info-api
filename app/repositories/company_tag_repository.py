@@ -1,8 +1,8 @@
-from sqlalchemy import select, tuple_, func
+from sqlalchemy import func, select, tuple_
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
-from app.db.models import CompanyTagName, CompanyTag
+from app.db.models import CompanyTag, CompanyTagName
 from app.domain.company_entity import CompanyTagEntity
 from app.dto.company_dto import CompanyTagNameDto
 from app.mappers.company_tag_mapper import CompanyTagMapper
@@ -16,22 +16,38 @@ class CompanyTagRepository:
     async def get_by_names(
         self, names: list[CompanyTagNameDto]
     ) -> CompanyTagEntity | None:
+        if not names:
+            return None
+
         expected_match_count = len(names)
 
-        subquery = (
+        # 1단계: 제공된 이름들과 일치하는 company_tag_id들을 찾기
+        # (제공된 이름 개수만큼 매치되는 태그들)
+        matching_tags_subquery = (
             select(CompanyTagName.company_tag_id)
             .where(
-                tuple_(CompanyTagName.language_code, CompanyTagName.name)
-                .in_([(name.language_code, name.name) for name in names])
-                .group_by(CompanyTagName.company_tag_id)
-                .having(func.count() == expected_match_count)
+                tuple_(CompanyTagName.language_code, CompanyTagName.name).in_(
+                    [(name.language_code, name.name) for name in names]
+                )
             )
+            .group_by(CompanyTagName.company_tag_id)
+            .having(func.count() == expected_match_count)
+            .subquery()
+        )
+
+        # 2단계: 해당 태그들이 정확히 제공된 이름 개수만큼만 가지고 있는지 확인
+        # (추가 이름이 없는지 확인)
+        exact_match_subquery = (
+            select(CompanyTagName.company_tag_id)
+            .where(CompanyTagName.company_tag_id.in_(select(matching_tags_subquery)))
+            .group_by(CompanyTagName.company_tag_id)
+            .having(func.count() == expected_match_count)
             .subquery()
         )
 
         stmt = (
             select(CompanyTag)
-            .where(CompanyTag.id.in_(select(subquery)))
+            .where(CompanyTag.id.in_(select(exact_match_subquery)))
             .options(selectinload(CompanyTag.names))
         )
 

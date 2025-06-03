@@ -153,3 +153,109 @@ class TestCompanyRepository:
         assert len(result) == 1
         company_names = [company.names[0].name for company in result]
         assert companies_with_tags[2].names[0].name in company_names
+
+    async def test_save_with_names_only(self, company_repository, async_session):
+        # Given
+        from app.domain.company_entity import CompanyEntity, CompanyNameEntity
+
+        company_entity = CompanyEntity(
+            names=(
+                CompanyNameEntity(language_code="ko", name="새로운회사"),
+                CompanyNameEntity(language_code="en", name="New Company"),
+            )
+        )
+
+        # When
+        await company_repository.save(company_entity)
+        await async_session.commit()
+
+        # Then
+        company_names = ["새로운회사", "New Company"]
+        language_codes = ["ko", "en"]
+
+        saved_company = await company_repository.get_by_name("새로운회사")
+        assert saved_company is not None
+        assert len(saved_company.names) == 2
+        assert saved_company.names[0].name in company_names
+        assert saved_company.names[0].language_code in language_codes
+        assert saved_company.names[1].name in company_names
+        assert saved_company.names[1].language_code in language_codes
+        assert len(saved_company.tags) == 0
+
+    async def test_save_with_names_and_tags(self, company_repository, async_session):
+        # Given
+        from app.domain.company_entity import (
+            CompanyEntity,
+            CompanyNameEntity,
+            CompanyTagEntity,
+            CompanyTagNameEntity,
+        )
+
+        company_entity = CompanyEntity(
+            names=(
+                CompanyNameEntity(language_code="ko", name="태그있는회사"),
+                CompanyNameEntity(language_code="en", name="Tagged Company"),
+            ),
+            tags=(
+                CompanyTagEntity(
+                    names=(
+                        CompanyTagNameEntity(language_code="ko", name="태그1"),
+                        CompanyTagNameEntity(language_code="en", name="tag1"),
+                    )
+                ),
+                CompanyTagEntity(
+                    names=(CompanyTagNameEntity(language_code="ko", name="태그2"),)
+                ),
+            ),
+        )
+
+        # When
+        await company_repository.save(company_entity)
+        await async_session.commit()
+
+        # Then
+        company_names = ["태그있는회사", "Tagged Company"]
+        tag_names = ["태그1", "tag1", "태그2"]
+
+        saved_company = await company_repository.get_by_name("태그있는회사")
+        assert saved_company is not None
+        assert len(saved_company.names) == 2
+        assert saved_company.names[0].name in company_names
+        assert saved_company.names[1].name in company_names
+        assert len(saved_company.tags) == 2
+        assert saved_company.tags[0].names[0].name in tag_names
+        assert saved_company.tags[0].names[1].name in tag_names
+        assert saved_company.tags[1].names[0].name in tag_names
+
+    async def test_save_with_existing_id(self, company_repository, async_session):
+        # Given
+        from app.domain.company_entity import CompanyEntity, CompanyNameEntity
+
+        existing_id = "12345678-1234-1234-1234-123456789abc"
+        company_entity = CompanyEntity(
+            id=existing_id,
+            names=(CompanyNameEntity(language_code="ko", name="ID있는회사"),),
+        )
+
+        # When
+        await company_repository.save(company_entity)
+        await async_session.commit()
+
+        # Then
+        saved_company = await company_repository.get_by_name("ID있는회사")
+        assert saved_company is not None
+        assert saved_company.id == existing_id
+        assert saved_company.names[0].name == "ID있는회사"
+
+    async def test_save_empty_entity(self, company_repository, async_session):
+        # Given
+        from app.domain.company_entity import CompanyEntity
+
+        company_entity = CompanyEntity()
+
+        # When
+        await company_repository.save(company_entity)
+        await async_session.commit()
+
+        # Then
+        await async_session.flush()

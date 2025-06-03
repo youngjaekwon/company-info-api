@@ -9,6 +9,13 @@ def company_mapper():
 
 
 @pytest.fixture()
+def company_tag_mapper():
+    from app.mappers.company_tag_mapper import CompanyTagMapper
+
+    return CompanyTagMapper()
+
+
+@pytest.fixture()
 def company_repository(async_session, company_mapper, redis_client, settings):
     from app.repositories.company_repository import CompanyRepository
 
@@ -17,6 +24,16 @@ def company_repository(async_session, company_mapper, redis_client, settings):
         company_mapper=company_mapper,
         redis_client=redis_client,
         settings=settings,
+    )
+
+
+@pytest.fixture()
+def company_tag_repository(async_session, company_tag_mapper):
+    from app.repositories.company_tag_repository import CompanyTagRepository
+
+    return CompanyTagRepository(
+        db=async_session,
+        company_tag_mapper=company_tag_mapper,
     )
 
 
@@ -79,3 +96,16 @@ async def companies_with_tags(async_session, companies, company_tags):
     )
 
     return companies
+
+
+@pytest.fixture
+async def multi_language_company_tag(async_session):
+    from app.db.models.company_model import CompanyTag, CompanyTagName
+
+    tag = CompanyTag()
+    tag.names.append(CompanyTagName(name="다국어태그", language_code="ko"))
+    tag.names.append(CompanyTagName(name="multilingual tag", language_code="en"))
+    tag.names.append(CompanyTagName(name="多言語タグ", language_code="jp"))
+    async_session.add(tag)
+    await async_session.flush()
+    return tag
