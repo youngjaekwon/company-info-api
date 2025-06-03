@@ -9,9 +9,9 @@ from app.mappers.company_mapper import CompanyMapper
 
 
 class CompanyRepository:
-    def __init__(self, db: AsyncSession, mapper: CompanyMapper):
+    def __init__(self, db: AsyncSession, company_mapper: CompanyMapper):
         self._db = db
-        self._mapper = mapper
+        self._company_mapper = company_mapper
 
     async def get_by_name(self, name: str) -> CompanyEntity | None:
         stmt = (
@@ -25,7 +25,7 @@ class CompanyRepository:
         )
         result = await self._db.execute(stmt)
         company = result.scalars().first()
-        return self._mapper.row_to_entity(company) if company else None
+        return self._company_mapper.row_to_entity(company) if company else None
 
     async def get_by_partial_name(self, partial_name: str) -> list[CompanyDto]:
         stmt = (
@@ -38,7 +38,10 @@ class CompanyRepository:
         )
         result = await self._db.execute(stmt)
         companies = result.scalars().all()
-        return [self._mapper.row_to_search_result_dto(company) for company in companies]
+        return [
+            self._company_mapper.row_to_search_result_dto(company)
+            for company in companies
+        ]
 
     async def get_by_tag(self, tag: str) -> list[CompanyDto]:
         stmt = (
@@ -50,4 +53,7 @@ class CompanyRepository:
         )
         result = await self._db.execute(stmt)
         companies = result.scalars().all()
-        return [self._mapper.row_to_search_result_dto(company) for company in companies]
+        return [
+            self._company_mapper.row_to_search_result_dto(company)
+            for company in companies
+        ]

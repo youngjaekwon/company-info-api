@@ -12,5 +12,5 @@ class RepositoryContainer(containers.DeclarativeContainer):
     company_repository = providers.Factory(
         CompanyRepository,
         db=providers.Dependency(),
-        mapper=company_mapper,
+        company_mapper=company_mapper,
     )

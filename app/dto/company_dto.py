@@ -1,4 +1,4 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True, slots=True)
@@ -10,3 +10,9 @@ class CompanyNameDto:
 @dataclass(frozen=True, slots=True)
 class CompanyDto:
     names: tuple[CompanyNameDto, ...]
+
+
+@dataclass(frozen=True, slots=True)
+class CompanySearchResultDto:
+    company_name: str
+    tags: tuple[str, ...] = field(default_factory=tuple)

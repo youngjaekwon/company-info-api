@@ -12,7 +12,7 @@ def company_mapper():
 def company_repository(async_session, company_mapper):
     from app.repositories.company_repository import CompanyRepository
 
-    return CompanyRepository(db=async_session, mapper=company_mapper)
+    return CompanyRepository(db=async_session, company_mapper=company_mapper)
 
 
 @pytest.fixture

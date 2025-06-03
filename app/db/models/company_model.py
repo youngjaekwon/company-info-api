@@ -3,18 +3,17 @@ from __future__ import annotations
 import uuid
 
 from sqlalchemy import (
-    Integer,
-    ForeignKey,
-    String,
     UUID,
-    Table,
     Column,
+    ForeignKey,
+    Integer,
+    String,
+    Table,
     UniqueConstraint,
 )
-from sqlalchemy.orm import mapped_column, Mapped, relationship
+from sqlalchemy.orm import Mapped, mapped_column, relationship
 
 from app.db.base import Base
-
 
 company_tag = Table(
     "company_tag",
