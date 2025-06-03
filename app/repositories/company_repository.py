@@ -114,6 +114,28 @@ class CompanyRepository:
 
     async def save(self, company: CompanyEntity) -> None:
         company_row = self._company_mapper.entity_to_row(company)
+
+        existing_tag_ids = [tag.id for tag in company.tags if tag.id is not None]
+
+        existing_tags = []
+        if existing_tag_ids:
+            stmt = (
+                select(CompanyTag)
+                .where(CompanyTag.id.in_(existing_tag_ids))
+                .options(selectinload(CompanyTag.names))
+            )
+            result = await self._db.execute(stmt)
+            existing_tags = list(result.scalars().all())
+
+        new_tags = []
+        existing_tag_ids_set = {tag.id for tag in existing_tags}
+
+        for tag_entity in company.tags:
+            if tag_entity.id is None or tag_entity.id not in existing_tag_ids_set:
+                new_tags.append(self._company_tag_mapper.entity_to_row(tag_entity))
+
+        company_row.tags = existing_tags + new_tags
+
         self._db.add(company_row)
 
         # Cache 무효화
