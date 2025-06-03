@@ -9,6 +9,6 @@ class ServiceContainer(containers.DeclarativeContainer):
 
     company_service = providers.Factory(
         CompanyService,
-        company_repo=providers.Dependency(),
-        company_mapper=providers.Dependency(),
+        company_repo=company_repo,
+        company_mapper=company_mapper,
     )

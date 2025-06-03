@@ -1,12 +1,12 @@
 from typing import Annotated
 
-from dependency_injector.wiring import inject, Provide
-from fastapi import APIRouter, Query, Depends, HTTPException, status
+from dependency_injector.wiring import Provide, inject
+from fastapi import APIRouter, Depends, HTTPException, Query, status
 
 from app.api.deps import WantedLanguage
 from app.containers import AppContainer
 from app.interfaces.company_service import ICompanyService
-from app.schemas.company import SearchedCompanyResponse, CompanyResponse
+from app.schemas.company import CompanyResponse, SearchedCompanyResponse
 
 router = APIRouter(tags=["Company"])
 

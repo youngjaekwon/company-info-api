@@ -3,10 +3,16 @@ from dependency_injector import containers, providers
 from app.containers.db_container import DBContainer
 from app.containers.repository_container import RepositoryContainer
 from app.containers.service_container import ServiceContainer
+from app.core.config import Settings
 
 
 class AppContainer(containers.DeclarativeContainer):
-    db = providers.Container(DBContainer)
+    settings = providers.Singleton(Settings)
+
+    db = providers.Container(
+        DBContainer,
+        settings=settings,
+    )
 
     repositories = providers.Container(
         RepositoryContainer,

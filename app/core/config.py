@@ -21,5 +21,9 @@ class Settings(BaseSettings):
     DATABASE_POOL_RECYCLE: int = 1800
     SQLALCHEMY_ECHO: bool = False
 
-
-settings = Settings()
+    # Redis settings
+    REDIS_URL: str
+    REDIS_PORT: int = 6379
+    REDIS_DB: int = 0
+    REDIS_PASSWORD: str
+    REDIS_MAX_CONNECTIONS: int = 100
