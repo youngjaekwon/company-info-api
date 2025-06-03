@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 
-from app.containers.main_container import AppContainer
 from app.api.v1.route import router as v1_router
+from app.containers.main_container import AppContainer
 
 
 def create_app() -> FastAPI:
@@ -11,7 +11,7 @@ def create_app() -> FastAPI:
     )
 
     container = AppContainer()
-    container.wire(modules=["app.api.v1.company"])
+    container.wire(modules=["app.api.v1.company", "app.api.v1.admin"])
 
     app.container = container
 

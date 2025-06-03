@@ -19,18 +19,26 @@ class CompanyTagMapper:
     def entity_to_row(self, entity: CompanyTagEntity) -> CompanyTag:
         if entity.id is not None:
             tag = CompanyTag(id=entity.id)
+            tag.names = [
+                CompanyTagName(
+                    language_code=name.language_code,
+                    name=name.name,
+                    company_tag_id=name.company_tag_id,
+                    **({"id": name.id} if name.id is not None else {}),
+                )
+                for name in entity.names
+            ]
         else:
             tag = CompanyTag()
+            tag_names = []
+            for name in entity.names:
+                tag_name = CompanyTagName(
+                    language_code=name.language_code,
+                    name=name.name,
+                )
+                tag_names.append(tag_name)
+            tag.names = tag_names
 
-        tag.names = [
-            CompanyTagName(
-                language_code=name.language_code,
-                name=name.name,
-                company_tag_id=name.company_tag_id,
-                **({"id": name.id} if name.id is not None else {}),
-            )
-            for name in entity.names
-        ]
         return tag
 
     def dto_to_entity(self, dto: CompanyTagDto) -> CompanyTagEntity:

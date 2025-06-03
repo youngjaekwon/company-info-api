@@ -69,6 +69,23 @@ docker compose --env-file ./env/.env.prod up -d --build
 
 ---
 
+## 초기 데이터 로딩
+- root 디렉터리에 company_tag_sample.csv 파일이 필요합니다.
+- company_tag_sample.csv 파일의 첫 번째 row는 다음과 같아이 수정되어야 합니다.
+  - company_ko: 원티드랩
+  - company_en: Wantedla
+
+```
+POST /admin/initialize-data
+```
+
+## 초기 데이터 로딩 확인
+```
+GET /admin/data-status
+```
+
+---
+
 ## API 문서
 
 ### Swagger UI
