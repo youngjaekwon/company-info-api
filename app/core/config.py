@@ -27,3 +27,7 @@ class Settings(BaseSettings):
     REDIS_DB: int = 0
     REDIS_PASSWORD: str
     REDIS_MAX_CONNECTIONS: int = 100
+
+    # Cache settings
+    REPOSITORY_CACHE_TTL: int = 60 * 60 * 12  # 12 hours
+    REPOSITORY_CACHE_PARTIAL_TTL: int = 60  # 1 minute, 부분 검색용 캐시 TTL

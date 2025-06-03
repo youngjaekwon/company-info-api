@@ -1,3 +1,5 @@
+import json
+
 from app.db.models import Company, CompanyName, CompanyTag, CompanyTagName
 from app.domain.company_entity import (
     CompanyEntity,
@@ -101,3 +103,70 @@ class CompanyMapper:
                 for name in row.names
             )
         )
+
+    def entity_to_json(self, entity: CompanyEntity) -> str:
+        data = {
+            "id": entity.id,
+            "names": [
+                {"language_code": name.language_code, "name": name.name}
+                for name in entity.names
+            ],
+            "tags": [
+                {
+                    "id": tag.id,
+                    "names": [
+                        {"language_code": tag_name.language_code, "name": tag_name.name}
+                        for tag_name in tag.names
+                    ],
+                }
+                for tag in entity.tags
+            ],
+        }
+        return json.dumps(data)
+
+    def dtos_to_json(self, dtos: list[CompanyDto]) -> str:
+        data = [
+            {
+                "names": [
+                    {"language_code": name.language_code, "name": name.name}
+                    for name in dto.names
+                ]
+            }
+            for dto in dtos
+        ]
+        return json.dumps(data)
+
+    def json_to_entity(self, data: str) -> CompanyEntity:
+        data = json.loads(data)
+        names = tuple(
+            CompanyNameEntity(language_code=name["language_code"], name=name["name"])
+            for name in data["names"]
+        )
+        tags = tuple(
+            CompanyTagEntity(
+                id=tag["id"],
+                names=tuple(
+                    CompanyTagNameEntity(
+                        language_code=tag_name["language_code"],
+                        name=tag_name["name"],
+                    )
+                    for tag_name in tag["names"]
+                ),
+            )
+            for tag in data.get("tags", [])
+        )
+        return CompanyEntity(names=names, tags=tags, id=data.get("id"))
+
+    def json_to_dtos(self, data: str) -> list[CompanyDto]:
+        data = json.loads(data)
+        return [
+            CompanyDto(
+                names=tuple(
+                    CompanyNameDto(
+                        language_code=name["language_code"], name=name["name"]
+                    )
+                    for name in item["names"]
+                )
+            )
+            for item in data
+        ]

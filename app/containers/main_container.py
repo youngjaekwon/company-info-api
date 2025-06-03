@@ -17,6 +17,8 @@ class AppContainer(containers.DeclarativeContainer):
     repositories = providers.Container(
         RepositoryContainer,
         db=db.provided.session,
+        redis_client=db.provided.redis_client,
+        settings=settings,
     )
 
     services = providers.Container(
