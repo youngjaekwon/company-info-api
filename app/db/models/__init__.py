@@ -1,4 +1,4 @@
-from .company import Company, CompanyName, CompanyTag, CompanyTagName, company_tag
+from .company_model import Company, CompanyName, CompanyTag, CompanyTagName, company_tag
 
 __all__ = [
     "Company",
