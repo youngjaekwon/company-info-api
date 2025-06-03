@@ -10,6 +10,7 @@ from sqlalchemy import (
     String,
     Table,
     UniqueConstraint,
+    Index,
 )
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 
@@ -50,7 +51,16 @@ class CompanyName(Base):
     language_code: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     name: Mapped[str] = mapped_column(nullable=False)
 
-    __table_args__ = (UniqueConstraint("company_id", "language_code"),)
+    __table_args__ = (
+        UniqueConstraint("company_id", "language_code"),
+        Index("ix_company_names_name_exact", "name"),  # btree (정확 일치)
+        Index(
+            "ix_company_names_name_trgm",
+            "name",
+            postgresql_using="gin",
+            postgresql_ops={"name": "gin_trgm_ops"},
+        ),  # trigram (ilike 대응용)
+    )
 
 
 class CompanyTag(Base):
@@ -80,4 +90,7 @@ class CompanyTagName(Base):
     language_code: Mapped[str] = mapped_column(String(10), nullable=False, index=True)
     name: Mapped[str] = mapped_column(nullable=False)
 
-    __table_args__ = (UniqueConstraint("company_tag_id", "language_code"),)
+    __table_args__ = (
+        UniqueConstraint("company_tag_id", "language_code"),
+        Index("ix_company_tag_names_name_exact", "name"),
+    )
