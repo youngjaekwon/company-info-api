@@ -181,3 +181,12 @@ class CompanyMapper:
             )
             for item in data
         ]
+
+    def dto_to_entity(
+        self, dto: CompanyDto, tags: list[CompanyTagEntity] | None = None
+    ) -> CompanyEntity:
+        names = tuple(
+            CompanyNameEntity(language_code=name.language_code, name=name.name)
+            for name in dto.names
+        )
+        return CompanyEntity(names=names, tags=tags or tuple())

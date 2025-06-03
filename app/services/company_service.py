@@ -1,16 +1,30 @@
 import logging
 
-from app.dto.company_dto import CompanySearchResultDto
+from sqlalchemy.ext.asyncio import AsyncSession
+
+from app.dto.company_dto import CompanyDto, CompanySearchResultDto, CompanyTagDto
 from app.interfaces.company_repository import ICompanyRepository
+from app.interfaces.company_tag_repository import ICompanyTagRepository
 from app.mappers.company_mapper import CompanyMapper
+from app.mappers.company_tag_mapper import CompanyTagMapper
 
 logger = logging.getLogger(__name__)
 
 
 class CompanyService:
-    def __init__(self, company_repo: ICompanyRepository, company_mapper: CompanyMapper):
+    def __init__(
+        self,
+        db: AsyncSession,
+        company_repo: ICompanyRepository,
+        company_tag_repo: ICompanyTagRepository,
+        company_mapper: CompanyMapper,
+        company_tag_mapper: CompanyTagMapper,
+    ):
+        self._db = db
         self._company_repo = company_repo
+        self._company_tag_repo = company_tag_repo
         self._company_mapper = company_mapper
+        self._company_tag_mapper = company_tag_mapper
 
     async def get_by_name(
         self, name: str, language_code: str
@@ -64,3 +78,63 @@ class CompanyService:
                 )
                 continue
         return result
+
+    async def create(
+        self, company: CompanyDto, language_code: str
+    ) -> CompanySearchResultDto:
+        tag_entities = []
+        for tag in company.tags:
+            tag_entity = await self._company_tag_repo.get_by_names(
+                names=list(tag.names)
+            )
+            if tag_entity is None:
+                tag_entity = self._company_tag_mapper.dto_to_entity(tag)
+
+            tag_entities.append(tag_entity)
+
+        company_entity = self._company_mapper.dto_to_entity(company, tags=tag_entities)
+
+        async with self._db.begin():
+            await self._company_repo.save(company=company_entity)
+
+        return self._company_mapper.entity_to_search_result(
+            entity=company_entity, language_code=language_code
+        )
+
+    async def add_tags(
+        self, name: str, tags: list[CompanyTagDto], language_code: str
+    ) -> CompanySearchResultDto | None:
+        tag_entities = []
+        for tag in tags:
+            tag_entity = await self._company_tag_repo.get_by_names(
+                names=list(tag.names)
+            )
+            if tag_entity is None:
+                tag_entity = self._company_tag_mapper.dto_to_entity(tag)
+
+            tag_entities.append(tag_entity)
+
+        async with self._db.begin():
+            company_entity = await self._company_repo.add_tag(
+                name=name, tags=tag_entities
+            )
+
+        if company_entity is None:
+            return None
+
+        return self._company_mapper.entity_to_search_result(
+            entity=company_entity, language_code=language_code
+        )
+
+    async def remove_tag(
+        self, name: str, tag: str, language_code: str
+    ) -> CompanySearchResultDto | None:
+        async with self._db.begin():
+            company_entity = await self._company_repo.remove_tag(name=name, tag=tag)
+
+        if company_entity is None:
+            return None
+
+        return self._company_mapper.entity_to_search_result(
+            entity=company_entity, language_code=language_code
+        )

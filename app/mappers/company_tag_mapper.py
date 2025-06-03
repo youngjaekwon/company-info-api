@@ -1,5 +1,6 @@
 from app.db.models import CompanyTag, CompanyTagName
 from app.domain.company_entity import CompanyTagEntity, CompanyTagNameEntity
+from app.dto.company_dto import CompanyTagDto
 
 
 class CompanyTagMapper:
@@ -27,3 +28,13 @@ class CompanyTagMapper:
             for name in entity.names
         ]
         return tag
+
+    def dto_to_entity(self, dto: CompanyTagDto) -> CompanyTagEntity:
+        names = tuple(
+            CompanyTagNameEntity(
+                language_code=name.language_code,
+                name=name.name,
+            )
+            for name in dto.names
+        )
+        return CompanyTagEntity(names=names)
