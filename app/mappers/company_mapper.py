@@ -69,7 +69,7 @@ class CompanyMapper:
             )
             for tag in row.tags
         )
-        return CompanyEntity(names=names, tags=tags, id=row.id)
+        return CompanyEntity(names=names, tags=tags, id=str(row.id))
 
     def entity_to_row(self, entity: CompanyEntity) -> Company:
         company = Company(id=entity.id)

@@ -1,5 +1,6 @@
 import asyncio
 
+import fakeredis.aioredis
 import pytest
 from sqlalchemy import StaticPool
 from sqlalchemy.ext.asyncio import async_sessionmaker, create_async_engine
@@ -43,3 +44,10 @@ async def async_session(_test_engine):
     async with async_session() as session:
         yield session
         await session.rollback()
+
+@pytest.fixture()
+async def redis_client():
+    redis_client = await fakeredis.aioredis.FakeRedis()
+    yield redis_client
+    await redis_client.flushall()
+    await redis_client.close()

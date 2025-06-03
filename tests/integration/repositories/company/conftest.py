@@ -9,10 +9,15 @@ def company_mapper():
 
 
 @pytest.fixture()
-def company_repository(async_session, company_mapper):
+def company_repository(async_session, company_mapper, redis_client, settings):
     from app.repositories.company_repository import CompanyRepository
 
-    return CompanyRepository(db=async_session, company_mapper=company_mapper)
+    return CompanyRepository(
+        db=async_session,
+        company_mapper=company_mapper,
+        redis_client=redis_client,
+        settings=settings,
+    )
 
 
 @pytest.fixture

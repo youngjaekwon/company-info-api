@@ -20,4 +20,5 @@ dependencies = [
 [dependency-groups]
 dev = [
     "aiosqlite>=0.21.0",
+    "fakeredis>=2.29.0",
 ]
