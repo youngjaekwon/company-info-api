@@ -19,6 +19,7 @@ class CompanyTagNameEntity:
     language_code: str
     name: str
     id: int | None = None
+    company_tag_id: int | None = None
 
     def __post_init__(self):
         if not self.name:

@@ -105,3 +105,7 @@ class CompanyRepository:
             ex=self._settings.REPOSITORY_CACHE_TTL,
         )
         return company_dtos
+
+    async def save(self, company: CompanyEntity) -> None:
+        company_row = self._company_mapper.entity_to_row(company)
+        self._db.add(company_row)

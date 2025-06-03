@@ -62,6 +62,7 @@ class CompanyMapper:
                         language_code=tag_name.language_code,
                         name=tag_name.name,
                         id=tag_name.id,
+                        company_tag_id=tag_name.company_tag_id,
                     )
                     for tag_name in tag.names
                 ),
@@ -84,6 +85,7 @@ class CompanyMapper:
                         language_code=tag_name.language_code,
                         name=tag_name.name,
                         id=tag_name.id,
+                        company_tag_id=tag_name.company_tag_id,
                     )
                     for tag_name in tag.names
                 ],

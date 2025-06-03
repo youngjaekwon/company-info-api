@@ -16,3 +16,9 @@ class CompanyDto:
 class CompanySearchResultDto:
     company_name: str
     tags: tuple[str, ...] = field(default_factory=tuple)
+
+
+@dataclass(frozen=True, slots=True)
+class CompanyTagNameDto:
+    language_code: str
+    name: str
